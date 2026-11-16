@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Task Manager{% endblock %}
+{% block page_subtitle %}Organize, prioritize and conquer your daily commitments{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <!-- Filter Tabs -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn-secondary btn-sm task-filter-btn active" onclick="filterTasks('all')">All Tasks</button>
+        <button class="btn-secondary btn-sm task-filter-btn" onclick="filterTasks('Pending')">Pending</button>
+        <button class="btn-secondary btn-sm task-filter-btn" onclick="filterTasks('Completed')">Completed</button>
+        <button class="btn-secondary btn-sm task-filter-btn" onclick="filterTasks('Urgent')">🔥 Urgent</button>
+        <button class="btn-secondary btn-sm task-filter-btn" onclick="filterTasks('High')">⚡ High Priority</button>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-secondary btn-sm" onclick="openModal('aiBreakdownModal')">
+            ✨ AI Task Breakdown
+        </button>
+        <button class="btn-primary btn-sm" onclick="openModal('newTaskModal')">
+            + New Task
+        </button>
+    </div>
+</div>
+
+<!-- Task List Container -->
+<div class="glass-card">
+    <div id="tasksList">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="task-item {{ 'completed' if task.status == 'Completed' else '' }}" 
+                 id="task-row-{{ task.id }}"
+                 data-status="{{ task.status }}"
+                 data-priority="{{ task.priority }}"
+                 data-category="{{ task.category }}">
+                
+                <div class="task-left">
+                    <button class="task-checkbox {{ 'checked' if task.status == 'Completed' else '' }}" 
+                            onclick="toggleTaskStatus({{ task.id }}, this)" 
+                            title="Toggle status">
+                        {% if task.status == 'Completed' %}✓{% endif %}
+                    </button>
+                    <div class="task-info">
+                        <div class="task-title">{{ task.title }}</div>
+                        {% if task.description %}
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">{{ task.description }}</div>
+                        {% endif %}
+                        <div class="task-meta" style="margin-top: 4px;">
+                            <span class="tag-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                            <span class="tag-badge" style="background: rgba(255,255,255,0.06);">{{ task.category }}</span>
+                            {% if task.due_date %}
+                            <span>📅 Due {{ task.due_date }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-secondary btn-sm" onclick="suggestSubtasks('{{ task.title|replace("'", "\\'") }}')" title="Break down with AI">
+                        ✨ Breakdown
+                    </button>
+                    <button class="btn-danger btn-sm" onclick="deleteTask({{ task.id }})" title="Delete task">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                No tasks logged yet. Click "+ New Task" to schedule your first commitment!
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: New Task -->
+<div class="modal-overlay" id="newTaskModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Create New Task</h3>
+            <button class="modal-close" onclick="closeModal('newTaskModal')">✕</button>
+        </div>
+        <form method="POST" action="{{ url_for('create_task') }}">
+            <div class="form-group">
+                <label class="form-label">Task Title *</label>
+                <input type="text" name="title" class="form-input" placeholder="e.g. Finish chemistry laboratory report" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description / Details</label>
+                <textarea name="description" class="form-textarea" rows="2" placeholder="Key objectives, links, or notes..."></textarea>
+            </div>
+            <div class="grid-cols-3" style="gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="Work">Work</option>
+                        <option value="Study">Study</option>
+                        <option value="Health">Health</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Personal">Personal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="Urgent">🔥 Urgent</option>
+                        <option value="High">⚡ High</option>
+                        <option value="Medium" selected>Normal</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" name="due_date" class="form-input" value="{{ today }}">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('newTaskModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: AI Task Breakdown Generator -->
+<div class="modal-overlay" id="aiBreakdownModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">✨ AI Task Decomposition</h3>
+            <button class="modal-close" onclick="closeModal('aiBreakdownModal')">✕</button>
+        </div>
+        <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+            Input a large goal or complex assignment. LifeAI will dissect it into bite-sized actionable steps.
+        </div>
+        <div class="form-group">
+            <label class="form-label">Goal or Task Title</label>
+            <input type="text" id="breakdownInput" class="form-input" placeholder="e.g. Build machine learning model pipeline">
+        </div>
+        <button type="button" class="btn-primary" onclick="generateBreakdown()" style="width: 100%; justify-content: center; margin-bottom: 16px;">
+            Decompose with AI
+        </button>
+
+        <div id="breakdownResults" style="display: none;">
+            <h4 style="font-size: 0.92rem; font-weight: 700; margin-bottom: 10px; color: var(--primary);">Generated Subtasks:</h4>
+            <div id="subtasksContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterTasks(criteria) {
+    document.querySelectorAll('.task-filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const items = document.querySelectorAll('.task-item');
+    items.forEach(item => {
+        if (criteria === 'all') {
+            item.style.display = 'flex';
+        } else if (criteria === 'Pending' || criteria === 'Completed') {
+            item.style.display = item.getAttribute('data-status') === criteria ? 'flex' : 'none';
+        } else {
+            item.style.display = item.getAttribute('data-priority') === criteria ? 'flex' : 'none';
+        }
+    });
+}
+
+async function toggleTaskStatus(taskId, btn) {
+    try {
+        const res = await fetch(`/api/tasks/${taskId}/toggle`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`task-row-${taskId}`);
+            const isCompleted = data.new_status === 'Completed';
+            row.classList.toggle('completed', isCompleted);
+            btn.classList.toggle('checked', isCompleted);
+            btn.innerHTML = isCompleted ? '✓' : '';
+            row.setAttribute('data-status', data.new_status);
+            showToast(`Task marked as ${data.new_status}`, 'success');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Delete this task?')) return;
+    try {
+        const res = await fetch(`/api/tasks/${taskId}/delete`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`task-row-${taskId}`);
+            if (row) row.remove();
+            showToast('Task removed', 'info');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function suggestSubtasks(title) {
+    document.getElementById('breakdownInput').value = title;
+    openModal('aiBreakdownModal');
+    generateBreakdown();
+}
+
+async function generateBreakdown() {
+    const input = document.getElementById('breakdownInput').value.trim();
+    if (!input) return;
+
+    const container = document.getElementById('subtasksContainer');
+    const resultsBox = document.getElementById('breakdownResults');
+    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Dissecting into optimal sprints...</div>';
+    resultsBox.style.display = 'block';
+
+    try {
+        const res = await fetch('/api/tasks/ai-breakdown', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: input })
+        });
+        const data = await res.json();
+        if (data.success) {
+            container.innerHTML = '';
+            data.subtasks.forEach(sub => {
+                const row = document.createElement('div');
+                row.style.cssText = 'padding: 8px 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between;';
+                row.innerHTML = `
+                    <span>${sub}</span>
+                    <button class="btn-primary btn-sm" onclick="addCreatedSubtask('${sub.replace(/'/g, "\\'")}', this)">Add</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="color: var(--accent-rose);">Error generating breakdown</div>';
+    }
+}
+
+async function addCreatedSubtask(title, btn) {
+    try {
+        const res = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                category: 'Study',
+                priority: 'High',
+                due_date: new Date().toISOString().split('T')[0]
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.textContent = '✓ Added';
+            btn.style.background = 'var(--accent-emerald)';
+            btn.disabled = true;
+            showToast('Subtask added to your dashboard!', 'success');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}

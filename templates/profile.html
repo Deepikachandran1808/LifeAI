@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Profile & Settings{% endblock %}
+{% block page_subtitle %}Manage your account, personal preferences, and data controls{% endblock %}
+
+{% block content %}
+<div class="grid-cols-2" style="margin-bottom: 24px;">
+    <!-- Profile & Preferences Form -->
+    <div class="glass-card">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 18px;">Account Details</h3>
+
+        <form method="POST" action="{{ url_for('profile') }}">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="full_name" class="form-input" value="{{ user.full_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" value="{{ user.username }}" disabled style="opacity: 0.6; cursor: not-allowed;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Usernames cannot be changed.</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-input" value="{{ user.email }}" required>
+            </div>
+
+            <div class="grid-cols-2" style="gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">Monthly Spending Ceiling ($)</label>
+                    <input type="number" step="50" name="monthly_budget" class="form-input" value="{{ user.monthly_budget }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Default Theme</label>
+                    <select name="theme" class="form-select">
+                        <option value="dark" {{ 'selected' if user.theme == 'dark' else '' }}>Dark (Neon Deep)</option>
+                        <option value="light" {{ 'selected' if user.theme == 'light' else '' }}>Light (Clean Crisp)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">New Password (leave blank to keep current)</label>
+                <input type="password" name="new_password" class="form-input" placeholder="••••••••" minlength="6">
+            </div>
+
+            <div style="margin-top: 24px;">
+                <button type="submit" class="btn-primary">
+                    Save Profile Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Controls & Demo Management -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="glass-card">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 12px;">Demo & Starter Data</h3>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                Need to reset your testing state or restore the rich pre-populated demo data (tasks, habits, expenses, study plan)? You can restore default sample data at any time.
+            </p>
+            <form method="POST" action="{{ url_for('reset_starter_data') }}" onsubmit="return confirm('Restore sample demo data? Your current items will be reset.');">
+                <button type="submit" class="btn-secondary">
+                    🔄 Restore Default Sample Data
+                </button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 12px;">LifeAI Engine Specifications</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem; color: var(--text-secondary);">
+                <div><strong>Stack:</strong> Python 3.11 + Flask + SQLite3</div>
+                <div><strong>Frontend:</strong> Modern Responsive Vanilla HTML5 / CSS3 / ES6</div>
+                <div><strong>Visuals:</strong> Native Chart.js Analytics + Web Audio API Chimes</div>
+                <div><strong>Security:</strong> PBKDF2 Password Hashing with Salt & Session Protection</div>
+                <div><strong>AI Architecture:</strong> Dual-layer (Instant Rule & Contextual Heuristics + Conversational Execution)</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

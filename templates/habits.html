@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Habit Tracker{% endblock %}
+{% block page_subtitle %}Build atomic daily systems that compound into exponential results{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <!-- Motivational Banner / Streaks Overview -->
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="habit-streak-badge" style="font-size: 0.9rem; padding: 6px 14px;">
+            🔥 Cumulative Streaks: {{ habits|sum(attribute='streak') }} Days
+        </span>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">
+            Consistency over intensity. Click any dot to toggle past or present days.
+        </span>
+    </div>
+
+    <button class="btn-primary btn-sm" onclick="openModal('newHabitModal')">
+        + Add New Habit
+    </button>
+</div>
+
+<!-- Habits Matrix Card -->
+<div class="glass-card" style="margin-bottom: 24px;">
+    <!-- Date Header Row -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px 16px 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
+        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted); width: 220px;">
+            HABIT & CATEGORY
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-right: 50px;">
+            {% for d in past_days %}
+            <div style="width: 34px; text-align: center; font-size: 0.72rem; font-weight: 700; color: {{ 'var(--primary)' if loop.last else 'var(--text-muted)' }};">
+                <div>{{ d.strftime('%a') }}</div>
+                <div>{{ d.strftime('%d') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-muted); width: 80px; text-align: right;">
+            ACTION
+        </div>
+    </div>
+
+    <!-- Habit Rows -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% if habits %}
+            {% for habit in habits %}
+            <div class="habit-row" id="habit-row-{{ habit.id }}" style="margin-bottom: 0;">
+                <div class="habit-name-group">
+                    <div class="habit-icon-box">★</div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 0.92rem;">{{ habit.name }}</div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                            <span class="tag-badge" style="background: rgba(255,255,255,0.06); font-size: 0.68rem;">{{ habit.category }}</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-amber); font-weight: 600;">🔥 {{ habit.streak }}d streak</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-day track -->
+                <div class="habit-dots-track">
+                    {% for day in habit.days %}
+                    <button class="habit-dot-btn {{ 'completed' if day.completed else '' }}" 
+                            onclick="toggleHabitDate({{ habit.id }}, '{{ day.date }}', this)" 
+                            title="{{ day.date }} ({{ day.label }})">
+                        ✓
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div style="width: 80px; text-align: right;">
+                    <button class="btn-danger btn-sm" onclick="deleteHabit({{ habit.id }})" title="Delete habit">✕</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                No habits created yet. Click "+ Add New Habit" to install your daily micro-habits!
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Habit Science & Milestone Badges -->
+<div class="grid-cols-3">
+    <div class="glass-card" style="padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🥉</div>
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 4px;">3-Day Spark</h4>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">Break the friction of starting. 3 consecutive days begins synaptic pathway reinforcement.</p>
+    </div>
+    <div class="glass-card" style="padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🥈</div>
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 4px;">7-Day Momentum</h4>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">One full week completed. Your habit survives weekend shifts and friction.</p>
+    </div>
+    <div class="glass-card" style="padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🏆</div>
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 4px;">21-Day Habit Master</h4>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">Automaticity unlocked! The action requires less cognitive will to execute.</p>
+    </div>
+</div>
+
+<!-- Modal: New Habit -->
+<div class="modal-overlay" id="newHabitModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Create Daily Habit</h3>
+            <button class="modal-close" onclick="closeModal('newHabitModal')">✕</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_habit') }}">
+            <div class="form-group">
+                <label class="form-label">Habit Name *</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g. 15-Minute Daily Reading or Morning Hydration" required>
+            </div>
+            <div class="grid-cols-2" style="gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="Health">Health & Wellness</option>
+                        <option value="Study">Study & Knowledge</option>
+                        <option value="Productivity">Productivity</option>
+                        <option value="Personal">Personal Routine</option>
+                        <option value="Finance">Financial Discipline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icon Motif</label>
+                    <select name="icon" class="form-select">
+                        <option value="sparkles">✨ Sparkles</option>
+                        <option value="brain">🧠 Mind / Meditation</option>
+                        <option value="droplet">💧 Water / Nutrition</option>
+                        <option value="book-open">📖 Reading</option>
+                        <option value="code">💻 Coding / Skill</option>
+                        <option value="dumbbell">🏋️ Fitness</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('newHabitModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Track Habit</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function toggleHabitDate(habitId, dateStr, btn) {
+    try {
+        const res = await fetch(`/api/habits/${habitId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateStr })
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.classList.toggle('completed', data.completed);
+            showToast(data.completed ? 'Habit checked! 🔥' : 'Habit unchecked', 'info');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function deleteHabit(id) {
+    if (!confirm('Delete this habit and all logged history?')) return;
+    try {
+        const res = await fetch(`/api/habits/${id}/delete`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`habit-row-${id}`);
+            if (row) row.remove();
+            showToast('Habit removed', 'info');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}

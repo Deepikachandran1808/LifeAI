@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Expense & Budget Tracker{% endblock %}
+{% block page_subtitle %}Master your cash flow and financial independence with AI advice{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="grid-cols-4" style="margin-bottom: 24px;">
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Monthly Income</span>
+            <div class="stat-icon emerald">📈</div>
+        </div>
+        <div class="stat-value" style="color: var(--accent-emerald);">${{ "%.2f"|format(total_income) }}</div>
+        <div class="stat-subtitle">Logged earnings this month</div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Total Expenses</span>
+            <div class="stat-icon rose">📉</div>
+        </div>
+        <div class="stat-value" style="color: var(--accent-rose);">${{ "%.2f"|format(total_expense) }}</div>
+        <div class="stat-subtitle">{{ budget_usage }}% of ${{ "%.0f"|format(budget) }} budget</div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Net Savings</span>
+            <div class="stat-icon primary">💎</div>
+        </div>
+        <div class="stat-value">${{ "%.2f"|format(net_savings) }}</div>
+        <div class="stat-subtitle">Cash flow surplus</div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Budget Limit</span>
+            <div class="stat-icon amber">🎯</div>
+        </div>
+        <div class="stat-value">${{ "%.0f"|format(budget) }}</div>
+        <div class="stat-subtitle">
+            <a href="javascript:void(0)" onclick="openModal('budgetModal')" style="color: var(--primary); font-weight: 600;">Edit Limit ✎</a>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Utilization Bar -->
+<div class="glass-card" style="margin-bottom: 24px; padding: 20px 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 0.95rem;">Monthly Budget Utilization</span>
+        <span style="font-weight: 700; font-size: 0.95rem; color: {{ 'var(--accent-rose)' if budget_usage > 90 else ('var(--accent-amber)' if budget_usage > 75 else 'var(--accent-emerald)') }};">
+            ${{ "%.2f"|format(total_expense) }} / ${{ "%.2f"|format(budget) }} ({{ budget_usage }}%)
+        </span>
+    </div>
+    <div style="height: 12px; background: var(--bg-surface-elevated); border-radius: var(--radius-full); overflow: hidden;">
+        <div style="height: 100%; width: {{ [budget_usage, 100]|min }}%; background: {{ 'var(--accent-rose)' if budget_usage > 90 else ('var(--accent-amber)' if budget_usage > 75 else 'var(--primary-gradient)') }}; transition: width 0.6s ease;"></div>
+    </div>
+</div>
+
+<!-- Chart & Transactions Split -->
+<div class="grid-cols-3" style="margin-bottom: 24px;">
+    <!-- Donut Chart -->
+    <div class="glass-card">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 14px;">Spending by Category</h3>
+        <div style="height: 250px; position: relative;">
+            <canvas id="expenseDonutChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Transaction Log Table -->
+    <div class="glass-card" style="grid-column: span 2;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h3 style="font-size: 1.05rem; font-weight: 700;">Recent Transactions</h3>
+            <button class="btn-primary btn-sm" onclick="openModal('newExpenseModal')">
+                + Log Transaction
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
+                        <th style="padding: 10px 12px;">Date</th>
+                        <th style="padding: 10px 12px;">Description</th>
+                        <th style="padding: 10px 12px;">Category</th>
+                        <th style="padding: 10px 12px;">Amount</th>
+                        <th style="padding: 10px 12px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if expenses %}
+                        {% for exp in expenses %}
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 12px; color: var(--text-muted);">{{ exp.date }}</td>
+                            <td style="padding: 12px; font-weight: 600;">
+                                {{ exp.title }}
+                                {% if exp.notes %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">{{ exp.notes }}</div>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px;">
+                                <span class="tag-badge" style="background: rgba(255,255,255,0.06);">{{ exp.category }}</span>
+                            </td>
+                            <td style="padding: 12px; font-weight: 700; color: {{ 'var(--accent-emerald)' if exp.type == 'income' else 'var(--text-primary)' }};">
+                                {{ '+' if exp.type == 'income' else '-' }}${{ "%.2f"|format(exp.amount) }}
+                            </td>
+                            <td style="padding: 12px; text-align: right;">
+                                <button class="btn-danger btn-sm" onclick="deleteExpense({{ exp.id }})" title="Delete">✕</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                No transactions logged. Add an income or expense to begin tracking!
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Transaction -->
+<div class="modal-overlay" id="newExpenseModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Log Transaction</h3>
+            <button class="modal-close" onclick="closeModal('newExpenseModal')">✕</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_expense') }}">
+            <div class="form-group">
+                <label class="form-label">Transaction Type</label>
+                <div style="display: flex; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="radio" name="type" value="expense" checked style="accent-color: var(--accent-rose);"> Expense
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="radio" name="type" value="income" style="accent-color: var(--accent-emerald);"> Income
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Title / Merchant *</label>
+                <input type="text" name="title" class="form-input" placeholder="e.g. Grocery Restock or Salary Deposit" required>
+            </div>
+            <div class="grid-cols-2" style="gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">Amount ($) *</label>
+                    <input type="number" step="0.01" name="amount" class="form-input" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="Food">Food & Groceries</option>
+                        <option value="Housing">Housing & Rent</option>
+                        <option value="Transport">Transport & Gas</option>
+                        <option value="Utilities">Utilities & Bills</option>
+                        <option value="Education">Education & Books</option>
+                        <option value="Health">Health & Fitness</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Salary">Salary / Income</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-input" value="{{ today }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes (Optional)</label>
+                <input type="text" name="notes" class="form-input" placeholder="e.g. Monthly subscription or team lunch">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('newExpenseModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Update Budget -->
+<div class="modal-overlay" id="budgetModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Adjust Monthly Budget</h3>
+            <button class="modal-close" onclick="closeModal('budgetModal')">✕</button>
+        </div>
+        <form method="POST" action="{{ url_for('update_budget') }}">
+            <div class="form-group">
+                <label class="form-label">Monthly Spending Ceiling ($)</label>
+                <input type="number" step="50" name="monthly_budget" class="form-input" value="{{ budget }}" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('budgetModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Budget</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('expenseDonutChart');
+    if (ctx) {
+        const catMap = {{ cat_breakdown|tojson }};
+        const labels = Object.keys(catMap);
+        const data = Object.values(catMap);
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length ? labels : ['No Expense'],
+                datasets: [{
+                    data: data.length ? data : [1],
+                    backgroundColor: [
+                        '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#3b82f6'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'),
+                            font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+});
+
+async function deleteExpense(id) {
+    if (!confirm('Remove this transaction?')) return;
+    try {
+        const res = await fetch(`/api/expenses/${id}/delete`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}

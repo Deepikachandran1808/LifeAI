@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Personalized AI Recommendations{% endblock %}
+{% block page_subtitle %}Real-time holistic telemetry analyzing your schedule, finances, habits, and cognitive focus{% endblock %}
+
+{% block content %}
+<!-- Daily LifeAI Audit Overview -->
+<div class="glass-card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%), var(--bg-surface);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div style="max-width: 600px;">
+            <div class="ai-badge" style="width: fit-content; margin-bottom: 8px;">LifeAI Diagnostic Engine</div>
+            <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 6px;">Daily Synthesis & Life Velocity</h2>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                LifeAI continuously cross-references your pending tasks, monthly spending velocity, habit streaks, and exam timelines to produce dynamic high-leverage interventions.
+            </p>
+        </div>
+
+        <div style="text-align: center; padding: 18px 28px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Productivity Score</div>
+            <div style="font-size: 2.4rem; font-weight: 800; color: var(--primary);">{{ ctx.overall_score }}<span style="font-size: 1rem; color: var(--text-muted);">/100</span></div>
+            <span class="tag-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">
+                {{ 'Optimal State' if ctx.overall_score >= 80 else 'Steady Momentum' }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations Action List -->
+<h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;">Actionable Interventions for Today</h3>
+
+<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 30px;">
+    {% if recommendations %}
+        {% for rec in recommendations %}
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; border-left: 4px solid {{ 'var(--accent-rose)' if rec.category == 'tasks' and 'Urgent' in rec.title else ('var(--accent-amber)' if rec.category == 'finance' else 'var(--primary)') }};">
+            <div style="flex: 1; min-width: 280px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <span class="tag-badge" style="background: rgba(255,255,255,0.06); font-size: 0.7rem;">
+                        {{ rec.category|upper }}
+                    </span>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">AI Action Recommendation</span>
+                </div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">{{ rec.title }}</h4>
+                <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">{{ rec.description }}</p>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{{ rec.action_url }}" class="btn-primary btn-sm">
+                    {{ rec.action_text }} →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="glass-card" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            No urgent alerts right now! You are in full control of your schedule and budget.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Holistic Health Breakdown -->
+<div class="grid-cols-4">
+    <div class="glass-card" style="padding: 18px;">
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Task Velocity</div>
+        <div style="font-size: 1.4rem; font-weight: 800; margin-bottom: 4px;">{{ ctx.completed_tasks|length }}/{{ ctx.tasks|length }} Completed</div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            {{ ctx.overdue_tasks|length }} overdue tasks requiring resolution
+        </div>
+    </div>
+
+    <div class="glass-card" style="padding: 18px;">
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Cash Flow Burn</div>
+        <div style="font-size: 1.4rem; font-weight: 800; margin-bottom: 4px;">{{ ctx.budget_percent }}% Used</div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            ${{ "%.2f"|format(ctx.budget - ctx.total_expense) }} buffer remaining
+        </div>
+    </div>
+
+    <div class="glass-card" style="padding: 18px;">
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Habit Adherence</div>
+        <div style="font-size: 1.4rem; font-weight: 800; margin-bottom: 4px;">
+            {{ ctx.habits|selectattr('done_today')|list|length }}/{{ ctx.habits|length }} Done
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            Daily micro-disciplines active
+        </div>
+    </div>
+
+    <div class="glass-card" style="padding: 18px;">
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Learning Output</div>
+        <div style="font-size: 1.4rem; font-weight: 800; margin-bottom: 4px;">{{ ctx.total_study_minutes }} Mins</div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            Recorded across {{ ctx.subjects|length }} active subjects
+        </div>
+    </div>
+</div>
+{% endblock %}

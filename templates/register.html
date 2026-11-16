@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account - LifeAI{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="logo-orb" style="margin: 0 auto 12px auto;">
+            <span class="orb-pulse"></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <h2 class="auth-title">Create your Life<span>AI</span> Account</h2>
+        <p class="auth-subtitle">Unlock an AI-driven life operating system</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+            <label class="form-label" for="full_name">Full Name</label>
+            <input type="text" id="full_name" name="full_name" class="form-input" placeholder="e.g. Jordan Smith" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-input" placeholder="e.g. jsmith" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="name@domain.com" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="password">Password (min 6 characters)</label>
+            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required minlength="6">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="••••••••" required minlength="6">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="starter_data" name="starter_data" checked style="accent-color: var(--primary); width: 16px; height: 16px;">
+            <label for="starter_data" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">
+                Pre-populate with sample tasks, habits & budget for instant tour
+            </label>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+            Initialize My LifeAI
+        </button>
+    </form>
+
+    <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
+    </div>
+</div>
+{% endblock %}

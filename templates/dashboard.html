@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Good day, {{ current_user.full_name }}. Here is your life snapshot.{% endblock %}
+
+{% block content %}
+<!-- Top AI Recommendation Spotlight Banner -->
+{% if recommendations %}
+{% set top_rec = recommendations[0] %}
+<div class="glass-card ai-hero-card">
+    <div class="ai-hero-header">
+        <span class="ai-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            LifeAI Daily Focus
+        </span>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">Personalized for you</span>
+    </div>
+    <h3 class="ai-hero-title">{{ top_rec.title }}</h3>
+    <p class="ai-hero-desc">{{ top_rec.description }}</p>
+    <div class="ai-hero-actions">
+        <a href="{{ top_rec.action_url }}" class="btn-primary btn-sm">
+            {{ top_rec.action_text }} →
+        </a>
+        <a href="{{ url_for('recommendations') }}" class="btn-secondary btn-sm">
+            View All AI Insights
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Key Metrics Grid -->
+<div class="grid-cols-4" style="margin-bottom: 24px;">
+    <!-- Life Productivity Score -->
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">LifeAI Score</span>
+            <div class="stat-icon primary">⚡</div>
+        </div>
+        <div class="stat-value" style="color: var(--primary);">{{ ctx.overall_score }}<span style="font-size: 1rem; font-weight: 500;">/100</span></div>
+        <div class="stat-subtitle">
+            {% if ctx.overall_score >= 80 %}
+                🌟 Peak Flow & Momentum
+            {% elif ctx.overall_score >= 60 %}
+                📈 Good progress, steady pace
+            {% else %}
+                ⚠️ Room to optimize routine
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tasks Metric -->
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Pending Tasks</span>
+            <div class="stat-icon emerald">✓</div>
+        </div>
+        <div class="stat-value">{{ ctx.pending_tasks|length }}</div>
+        <div class="stat-subtitle">
+            {% if ctx.urgent_tasks %}
+                <span style="color: var(--accent-rose); font-weight: 600;">{{ ctx.urgent_tasks|length }} Urgent</span> priority
+            {% else %}
+                All urgent tasks cleared
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Monthly Budget Metric -->
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Spent This Month</span>
+            <div class="stat-icon cyan">💰</div>
+        </div>
+        <div class="stat-value">${{ "%.2f"|format(ctx.total_expense) }}</div>
+        <div class="stat-subtitle">
+            {{ ctx.budget_percent }}% of ${{ "%.0f"|format(ctx.budget) }} budget
+        </div>
+    </div>
+
+    <!-- Habits Metric -->
+    <div class="glass-card stat-card">
+        <div class="stat-header">
+            <span class="stat-title">Habits Today</span>
+            <div class="stat-icon amber">🌱</div>
+        </div>
+        {% set done_habits = ctx.habits|selectattr('done_today')|list|length %}
+        <div class="stat-value">{{ done_habits }}<span style="font-size: 1rem; font-weight: 500;">/{{ ctx.habits|length }}</span></div>
+        <div class="stat-subtitle">
+            {% if done_habits == ctx.habits|length and ctx.habits %}
+                🎉 100% completed today!
+            {% else %}
+                {{ ctx.habits|length - done_habits }} remaining today
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Main Split: Tasks & Quick Actions vs Analytics & Habits -->
+<div class="grid-cols-2" style="margin-bottom: 24px;">
+    <!-- Left Column: Pending Tasks Checklist -->
+    <div class="glass-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700;">Priority Tasks</h3>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Quick check-off for today</span>
+            </div>
+            <a href="{{ url_for('tasks') }}" class="btn-secondary btn-sm">+ Manage All</a>
+        </div>
+
+        <div class="tasks-list" id="dashboardTasksList">
+            {% if ctx.pending_tasks %}
+                {% for task in ctx.pending_tasks[:5] %}
+                <div class="task-item" id="task-row-{{ task.id }}">
+                    <div class="task-left">
+                        <button class="task-checkbox" onclick="toggleTaskQuick({{ task.id }})" title="Mark complete">
+                            <span id="check-icon-{{ task.id }}"></span>
+                        </button>
+                        <div class="task-info">
+                            <div class="task-title">{{ task.title }}</div>
+                            <div class="task-meta">
+                                <span class="tag-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                                <span>{{ task.category }}</span>
+                                {% if task.due_date %}
+                                <span>📅 {{ task.due_date }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+                    🎉 You have completed all tasks! Enjoy your day.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Habit Consistency Matrix -->
+    <div class="glass-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700;">Daily Habit Streaks</h3>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Consistency builds greatness</span>
+            </div>
+            <a href="{{ url_for('habits') }}" class="btn-secondary btn-sm">Full Tracker</a>
+        </div>
+
+        <div class="habits-list">
+            {% for habit in ctx.habits[:4] %}
+            <div class="habit-row">
+                <div class="habit-name-group">
+                    <div class="habit-icon-box">★</div>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem;">{{ habit.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ habit.category }}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div class="habit-streak-badge">
+                        🔥 {{ habit.streak }}d
+                    </div>
+                    <button class="habit-dot-btn {{ 'completed' if habit.done_today else '' }}" 
+                            onclick="toggleHabitQuick({{ habit.id }}, this)" 
+                            title="Toggle for today">
+                        ✓
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Row: Spending Distribution & Quick AI Command Bar -->
+<div class="grid-cols-2">
+    <!-- Spending Breakdown Mini Chart -->
+    <div class="glass-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700;">Expense Breakdown</h3>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Categorized spending for this month</span>
+            </div>
+            <a href="{{ url_for('expenses') }}" class="btn-secondary btn-sm">Log Expense</a>
+        </div>
+
+        <div style="height: 220px; position: relative;">
+            <canvas id="categoryExpenseChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Study & Learning Readiness -->
+    <div class="glass-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700;">Study & Exam Countdown</h3>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Target hours vs upcoming deadlines</span>
+            </div>
+            <a href="{{ url_for('study') }}" class="btn-primary btn-sm">Launch Pomodoro</a>
+        </div>
+
+        <div class="subjects-preview" style="display: flex; flex-direction: column; gap: 12px;">
+            {% for sub in ctx.subjects[:3] %}
+            <div style="padding: 12px 16px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: {{ sub.color }};"></span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.88rem;">{{ sub.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Target: {{ sub.target_hours }} hours</div>
+                    </div>
+                </div>
+                {% if sub.exam_date %}
+                <span class="tag-badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary);">
+                    📅 {{ sub.exam_date }}
+                </span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Chart.js Category Breakdown Donut Chart
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('categoryExpenseChart');
+    if (ctx) {
+        const labels = {{ cat_labels|tojson }};
+        const values = {{ cat_values|tojson }};
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length ? labels : ['No Expenses Yet'],
+                datasets: [{
+                    data: values.length ? values : [1],
+                    backgroundColor: [
+                        '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'),
+                            font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+                        }
+                    }
+                },
+                cutout: '68%'
+            }
+        });
+    }
+});
+
+// Quick toggle task
+async function toggleTaskQuick(taskId) {
+    try {
+        const res = await fetch(`/api/tasks/${taskId}/toggle`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`task-row-${taskId}`);
+            if (row) {
+                row.style.opacity = '0.4';
+                row.style.transform = 'scale(0.98)';
+                showToast('Task status updated!', 'success');
+                setTimeout(() => row.remove(), 400);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// Quick toggle habit
+async function toggleHabitQuick(habitId, btn) {
+    try {
+        const res = await fetch(`/api/habits/${habitId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: new Date().toISOString().split('T')[0] })
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.classList.toggle('completed', data.completed);
+            showToast(data.completed ? 'Habit completed for today! 🔥' : 'Habit unchecked', 'info');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}
